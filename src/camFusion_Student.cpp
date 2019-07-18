@@ -144,11 +144,32 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
     // ...
 }
 
+void sortLidarPoints(std::vector<LidarPoint> &lidarPoints)
+{
+    // This std::sort with a lambda mutates lidarPoints, a vector of LidarPoint
+    std::sort(lidarPoints.begin(), lidarPoints.end(), [](LidarPoint a, LidarPoint b) {
+        return a.x < b.x;  // Sort ascending on the x coordinate only
+    });
+}
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {
-    // ...
+    // In each frame, take the median x-distance as our more robust estimate.
+    // If performance is suffering, consider taking the median of a random subset of the points.
+    sortLidarPoints(lidarPointsPrev);
+    sortLidarPoints(lidarPointsCurr);
+    double d0 = lidarPointsPrev[lidarPointsPrev.size()/2].x;
+    double d1 = lidarPointsCurr[lidarPointsCurr.size()/2].x;
+
+    // Using the constant-velocity model (as opposed to a constant-acceleration model)
+    // TTC = d1 * delta_t / (d0 - d1)
+    // where: d0 is the previous frame's closing distance (front-to-rear bumper)
+    //        d1 is the current frame's closing distance (front-to-rear bumper)
+    //        delta_t is the time elapsed between images (1 / frameRate)
+    // Note: this function does not take into account the distance from the lidar origin to the front bumper of our vehicle.
+    // It also does not account for the curvature or protrusions from the rear bumper of the preceding vehicle.
+    TTC = d1 * (1.0 / frameRate) / (d0 - d1);
 }
 
 
