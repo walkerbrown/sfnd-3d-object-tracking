@@ -150,7 +150,14 @@ int main(int argc, const char *argv[])
 
         // extract 2D keypoints from current image
         vector<cv::KeyPoint> keypoints; // create empty feature list for current image
+        
+        // string detectorType = "SHITOMASI";
+        // string detectorType = "HARRIS";
         string detectorType = "FAST";
+        // string detectorType = "BRISK";
+        // string detectorType = "ORB";
+        // string detectorType = "AKAZE";
+        // string detectorType = "SIFT";
 
         // Shi-Tomasi
         if (detectorType.compare("SHITOMASI") == 0)
@@ -200,7 +207,14 @@ int main(int argc, const char *argv[])
         /* EXTRACT KEYPOINT DESCRIPTORS */
 
         cv::Mat descriptors;
-        string descriptorType = "ORB"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+        
+        // string descriptorType = "BRISK";
+        // string descriptorType = "BRIEF";
+        string descriptorType = "ORB";
+        // string descriptorType = "FREAK";
+        // string descriptorType = "AKAZE";  // Fails with all non-AKAZE detectors
+        // string descriptorType = "SIFT";  // Fails with ORB detectors
+
         descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
 
         // push descriptors for current frame to end of data buffer
@@ -215,13 +229,29 @@ int main(int argc, const char *argv[])
             /* MATCH KEYPOINT DESCRIPTORS */
 
             vector<cv::DMatch> matches;
-            string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
-            string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
-            string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
+
+            /* Select brute force (BF) or Fast Library for Approximate Nearest Neighbors (FLANN) */
+            string matcherType = "MAT_BF";
+            // string matcherType = "MAT_FLANN";
+            
+            /* For descriptor type, select binary (BINARY) or histogram of gradients (HOG) */
+            /* BINARY descriptors include: BRISK, BRIEF, ORB, FREAK, and (A)KAZE. */
+            /* HOG descriptors include: SIFT (and SURF and GLOH, all patented). */
+            string descriptorCategory {};
+            if (0 == descriptorType.compare("SIFT")) {
+                descriptorCategory = "DES_HOG";
+            }
+            else {
+                descriptorCategory = "DES_BINARY";
+            }
+
+            /* For selector type, choose nearest neighbors (NN) or k nearest neighbors (KNN) */
+            // string selectorType = "SEL_NN";
+            string selectorType = "SEL_KNN";
 
             matchDescriptors((dataBuffer.end() - 2)->keypoints, (dataBuffer.end() - 1)->keypoints,
                              (dataBuffer.end() - 2)->descriptors, (dataBuffer.end() - 1)->descriptors,
-                             matches, descriptorType, matcherType, selectorType);
+                             matches, descriptorCategory, matcherType, selectorType);
 
             // store matches in current data frame
             (dataBuffer.end() - 1)->kptMatches = matches;
