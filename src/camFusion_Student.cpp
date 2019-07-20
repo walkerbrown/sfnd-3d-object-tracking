@@ -270,7 +270,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
 
         // Accumulator loop
         for (auto it = rangePrevBoxIDs.first; it != rangePrevBoxIDs.second; ++it) {
-            counts[(*it).second] += 1;
+            if (-1 != (*it).second) counts[(*it).second] += 1;
         }
 
         // Get the index of the maximum count (the mode) of the previous frame's boxID
