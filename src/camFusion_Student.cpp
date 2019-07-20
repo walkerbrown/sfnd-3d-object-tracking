@@ -277,8 +277,8 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
         int modeIndex = std::distance(counts.begin(), std::max_element(counts.begin(), counts.end()));
 
         // Set the best matching bounding box map with
-        // key   = Current frame's boxID, k
-        // value = Previous frame's most likely matching boxID
-        bbBestMatches.insert({k, modeIndex});
+        // key   = Previous frame's most likely matching boxID
+        // value = Current frame's boxID, k
+        bbBestMatches.insert({modeIndex, k});
     }
 }
