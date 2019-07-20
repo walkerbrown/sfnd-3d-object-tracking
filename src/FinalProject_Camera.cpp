@@ -73,7 +73,7 @@ int main(int argc, const char *argv[])
     int dataBufferSize = 2;       // no. of images which are held in memory (ring buffer) at the same time
     vector<DataFrame> dataBuffer; // list of data frames which are held in memory at the same time
     bool bVis = false;            // visualize results
-    bool perf = true;             // log the results
+    bool perf = false;             // log the results
 
     /* MAIN LOOP OVER ALL IMAGES */
 
@@ -94,7 +94,7 @@ int main(int argc, const char *argv[])
         frame.cameraImg = img;
         dataBuffer.push_back(frame);
 
-        // cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
+        cout << "#1 : LOAD IMAGE INTO BUFFER done" << endl;
 
 
         /* DETECT & CLASSIFY OBJECTS */
@@ -104,7 +104,7 @@ int main(int argc, const char *argv[])
         detectObjects((dataBuffer.end() - 1)->cameraImg, (dataBuffer.end() - 1)->boundingBoxes, confThreshold, nmsThreshold,
                       yoloBasePath, yoloClassesFile, yoloModelConfiguration, yoloModelWeights, bVis);
 
-        // cout << "#2 : DETECT & CLASSIFY OBJECTS done" << endl;
+        cout << "#2 : DETECT & CLASSIFY OBJECTS done" << endl;
 
 
         /* CROP LIDAR POINTS */
@@ -120,7 +120,7 @@ int main(int argc, const char *argv[])
     
         (dataBuffer.end() - 1)->lidarPoints = lidarPoints;
 
-        // cout << "#3 : CROP LIDAR POINTS done" << endl;
+        cout << "#3 : CROP LIDAR POINTS done" << endl;
 
 
         /* CLUSTER LIDAR POINT CLOUD */
@@ -137,7 +137,7 @@ int main(int argc, const char *argv[])
         }
         bVis = false;
 
-        // cout << "#4 : CLUSTER LIDAR POINT CLOUD done" << endl;
+        cout << "#4 : CLUSTER LIDAR POINT CLOUD done" << endl;
         
         
         // REMOVE THIS LINE BEFORE PROCEEDING WITH THE FINAL PROJECT
@@ -154,10 +154,10 @@ int main(int argc, const char *argv[])
         
         // string detectorType = "SHITOMASI";
         // string detectorType = "HARRIS";
-        string detectorType = "FAST";
+        // string detectorType = "FAST";
         // string detectorType = "BRISK";
         // string detectorType = "ORB";
-        // string detectorType = "AKAZE";
+        string detectorType = "AKAZE";
         // string detectorType = "SIFT";
 
         // Shi-Tomasi
@@ -198,13 +198,13 @@ int main(int argc, const char *argv[])
                 keypoints.erase(keypoints.begin() + maxKeypoints, keypoints.end());
             }
             cv::KeyPointsFilter::retainBest(keypoints, maxKeypoints);
-            // cout << " NOTE: Keypoints have been limited!" << endl;
+            cout << " NOTE: Keypoints have been limited!" << endl;
         }
 
         // push keypoints and descriptor for current frame to end of data buffer
         (dataBuffer.end() - 1)->keypoints = keypoints;
 
-        // cout << "#5 : DETECT KEYPOINTS done" << endl;
+        cout << "#5 : DETECT KEYPOINTS done" << endl;
 
 
         /* EXTRACT KEYPOINT DESCRIPTORS */
@@ -213,17 +213,17 @@ int main(int argc, const char *argv[])
         
         // string descriptorType = "BRISK";
         // string descriptorType = "BRIEF";
-        string descriptorType = "ORB";
+        // string descriptorType = "ORB";  // Fails with SIFT detector
         // string descriptorType = "FREAK";
-        // string descriptorType = "AKAZE";  // Fails with all non-AKAZE detectors
-        // string descriptorType = "SIFT";  // Fails with ORB detectors
+        string descriptorType = "AKAZE";  // Fails with all non-AKAZE detectors
+        // string descriptorType = "SIFT";
 
         descKeypoints((dataBuffer.end() - 1)->keypoints, (dataBuffer.end() - 1)->cameraImg, descriptors, descriptorType);
 
         // push descriptors for current frame to end of data buffer
         (dataBuffer.end() - 1)->descriptors = descriptors;
 
-        // cout << "#6 : EXTRACT DESCRIPTORS done" << endl;
+        cout << "#6 : EXTRACT DESCRIPTORS done" << endl;
 
 
         if (dataBuffer.size() > 1) // wait until at least two images have been processed
@@ -264,7 +264,7 @@ int main(int argc, const char *argv[])
                 cout << imgIndex << ",";
             }
 
-            // cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
+            cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << endl;
 
             
             /* TRACK 3D OBJECT BOUNDING BOXES */
@@ -273,16 +273,12 @@ int main(int argc, const char *argv[])
             //// TASK FP.1 -> match list of 3D objects (vector<BoundingBox>) between current and previous frame (implement ->matchBoundingBoxes)
             map<int, int> bbBestMatches;
             matchBoundingBoxes(matches, bbBestMatches, *(dataBuffer.end()-2), *(dataBuffer.end()-1)); // associate bounding boxes between current and previous frame using keypoint matches
-            //// DEBUG
-            // for (auto bbKey : bbBestMatches) {
-            //     // cout << "key=" << bbKey.first << ", value=" << bbKey.second << endl;
-            // }
             //// EOF STUDENT ASSIGNMENT
 
             // store matches in current data frame
             (dataBuffer.end()-1)->bbMatches = bbBestMatches;
 
-            // cout << "#8 : TRACK 3D OBJECT BOUNDING BOXES done" << endl;
+            cout << "#8 : TRACK 3D OBJECT BOUNDING BOXES done" << endl;
 
 
             /* COMPUTE TTC ON OBJECT IN FRONT */
@@ -327,15 +323,16 @@ int main(int argc, const char *argv[])
                     if (perf) {
                         cout << ttcLidar << ",";
                         cout << ttcCamera << ",";
+                        cout << ttcCamera - ttcLidar << ",";
                         cout << endl;
                     }
                     //// EOF STUDENT ASSIGNMENT
 
-                    bVis = false;
+                    bVis = true;
                     if (bVis)
                     {
                         cv::Mat visImg = (dataBuffer.end() - 1)->cameraImg.clone();
-                        showLidarTopview(currBB->lidarPoints, cv::Size(4.0, 20.0), cv::Size(2000, 2000), true);
+                        // showLidarTopview(currBB->lidarPoints, cv::Size(4.0, 20.0), cv::Size(2000, 2000), true);
                         showLidarImgOverlay(visImg, currBB->lidarPoints, P_rect_00, R_rect_00, RT, &visImg);
                         cv::rectangle(visImg, cv::Point(currBB->roi.x, currBB->roi.y), cv::Point(currBB->roi.x + currBB->roi.width, currBB->roi.y + currBB->roi.height), cv::Scalar(0, 255, 0), 2);
                         
@@ -346,8 +343,8 @@ int main(int argc, const char *argv[])
                         string windowName = "Final Results : TTC";
                         cv::namedWindow(windowName, 4);
                         cv::imshow(windowName, visImg);
-                        // cout << "Press key to continue to next frame" << endl;
-                        // cv::waitKey(0);
+                        cout << "Press key to continue to next frame" << endl;
+                        cv::waitKey(0);
                     }
                     bVis = false;
 
